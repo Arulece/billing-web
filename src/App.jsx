@@ -7,8 +7,15 @@ import ReportsPage from './pages/ReportsPage';
 import EmployeesPage from './pages/EmployeesPage';
 import ExpensesPage from './pages/ExpensesPage';
 import PrintInvoice from './pages/PrintInvoice';
+import LoginPage from './pages/LoginPage';
 import Nav from './components/Nav';
 import ItemsPage from './pages/ItemsPage';
+
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+};
 
 const RoleGuard = ({ children, allowed = [] }) => {
   const { role } = useAuth();
@@ -23,21 +30,32 @@ const PrintWrapper = () => {
   return <PrintInvoice bill={bill} />;
 };
 
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <>
+      {isAuthenticated && <Nav />}
+      <Routes>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/print/:id" element={<PrintWrapper />} />
+        <Route path="/" element={<PrivateRoute><BillingPage /></PrivateRoute>} />
+        <Route path="/reports" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+        <Route path="/items" element={<PrivateRoute><ItemsPage /></PrivateRoute>} />
+        <Route path="/employees" element={<PrivateRoute><RoleGuard allowed={["Admin"]}><EmployeesPage /></RoleGuard></PrivateRoute>} />
+        <Route path="/expenses" element={<PrivateRoute><RoleGuard allowed={["Admin"]}><ExpensesPage /></RoleGuard></PrivateRoute>} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+      </Routes>
+    </>
+  );
+};
+
 export default function AppRoot() {
   return (
     <AppProvider>
       <AuthProvider>
         <BrowserRouter>
-          <Nav />
-          <Routes>
-            <Route path="/" element={<BillingPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/items" element={<ItemsPage />} />
-            <Route path="/employees" element={<RoleGuard allowed={["Admin"]}><EmployeesPage /></RoleGuard>} />
-            <Route path="/expenses" element={<RoleGuard allowed={["Admin"]}><ExpensesPage /></RoleGuard>} />
-            <Route path="/print/:id" element={<PrintWrapper />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
     </AppProvider>

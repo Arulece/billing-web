@@ -4,7 +4,40 @@ import billingService from '../services/billingService';
 export default function PrintInvoice({ bill }) {
   const ref = useRef();
 
-  if (!bill) return <div className="container">No bill selected</div>;
+  React.useEffect(() => {
+    // Auto-print after a short delay to allow content to load
+    const timer = setTimeout(() => {
+      // Only auto-print if we have a valid bill
+      if (bill && bill.items && bill.items.length > 0) {
+        window.print();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [bill]);
+
+  if (!bill) {
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: '40px' }}>
+        <h2>No Bill Found</h2>
+        <p>Unable to load bill data. Please close this window and try again.</p>
+        <button 
+          onClick={() => window.close()} 
+          style={{
+            marginTop: '20px',
+            padding: '12px 24px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Close Window
+        </button>
+      </div>
+    );
+  }
 
   const totals = billingService.calculateTotals(bill.items, 0.00);
   const { subtotal, totalDiscount, tax, total } = totals;
@@ -14,7 +47,50 @@ export default function PrintInvoice({ bill }) {
   const fmt = (v) => `₹${Number(v || 0).toFixed(2)}`;
 
   return (
-    <div ref={ref} className="container print-invoice">
+    <>
+      <div className="no-print" style={{
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #dee2e6',
+        display: 'flex',
+        gap: '12px',
+        justifyContent: 'center',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000
+      }}>
+        <button 
+          onClick={handlePrint}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px'
+          }}
+        >
+          🖨️ Print Invoice
+        </button>
+        <button 
+          onClick={() => window.close()}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px'
+          }}
+        >
+          Close Window
+        </button>
+      </div>
+      <div ref={ref} className="container print-invoice">
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
           <div>
@@ -81,5 +157,6 @@ export default function PrintInvoice({ bill }) {
         </div>
       </div>
     </div>
+    </>
   );
 }

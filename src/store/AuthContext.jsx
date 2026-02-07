@@ -1,13 +1,30 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const THEME_KEY = 'dh_theme_v1';
+const AUTH_KEY = 'dh_auth_v1';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   // role: 'Admin' | 'Staff'
   const [role, setRole] = useState('Staff');
-  const [user, setUser] = useState({ id: 'local_user', name: 'Local User' });
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Load authentication state from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedAuth = window.localStorage.getItem(AUTH_KEY);
+      if (savedAuth) {
+        const { user: savedUser, role: savedRole } = JSON.parse(savedAuth);
+        setUser(savedUser);
+        setRole(savedRole);
+        setIsAuthenticated(true);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // theme: 'light' | 'dark'
   const [theme, setTheme] = useState(() => {
@@ -31,6 +48,30 @@ export const AuthProvider = ({ children }) => {
       // ignore
     }
   }, [theme]);
+
+  const login = (userData, userRole) => {
+    setUser(userData);
+    setRole(userRole);
+    setIsAuthenticated(true);
+    // Persist to localStorage
+    try {
+      window.localStorage.setItem(AUTH_KEY, JSON.stringify({ user: userData, role: userRole }));
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setRole('Staff');
+    setIsAuthenticated(false);
+    // Clear from localStorage
+    try {
+      window.localStorage.removeItem(AUTH_KEY);
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const loginAs = (newRole) => {
     setRole(newRole);
@@ -56,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ role, user, loginAs, theme, toggleTheme }}>
+    <AuthContext.Provider value={{ role, user, isAuthenticated, login, logout, loginAs, theme, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,15 +1,44 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import BillForm from '../components/BillForm';
 
 export default function BillingPage() {
-  const { state } = useApp();
+  const { state, deleteBill } = useApp();
+  const navigate = useNavigate();
   const bills = state.master?.bills || [];
   const [activeBillId, setActiveBillId] = useState(null);
+  const [formResetKey, setFormResetKey] = useState(0);
 
   const openBills = bills.filter((b) => b.state === 'OPEN');
   const closedBills = bills.filter((b) => b.state !== 'OPEN');
   const selectedBill = bills.find((b) => b.id === activeBillId) || null;
+  
+  const handleNewBill = () => {
+    setActiveBillId(null);
+    setFormResetKey(prev => prev + 1); // Force form to remount
+  };
+
+  const handleDeleteBill = async (billId) => {
+    if (!confirm('Are you sure you want to delete this bill? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await deleteBill(billId);
+      // If the deleted bill was selected, clear the selection
+      if (activeBillId === billId) {
+        setActiveBillId(null);
+      }
+      alert('Bill deleted successfully.');
+    } catch (err) {
+      alert('Failed to delete bill: ' + err.message);
+    }
+  };
+
+  const handlePrintBill = (billId) => {
+    // Open print page in a new window
+    window.open(`/print/${billId}`, '_blank');
+  };
 
   return (
     <div className="container">
@@ -19,7 +48,7 @@ export default function BillingPage() {
       </header>
 
       <div style={{display:'flex',gap:16,alignItems:'center',marginBottom:24,flexWrap:'wrap'}}>
-        <button className="primary btn-lg" onClick={() => setActiveBillId(null)}>+ New Bill</button>
+        <button className="primary btn-lg" onClick={handleNewBill}>+ New Bill</button>
         {selectedBill && (
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <span className={`badge ${selectedBill.state === 'OPEN' ? 'badge-success' : 'badge-info'}`}>
@@ -35,7 +64,7 @@ export default function BillingPage() {
       </div>
 
       <div className="card">
-        <BillForm existingBill={selectedBill} />
+        <BillForm key={selectedBill?.id || `new-bill-${formResetKey}`} existingBill={selectedBill} />
       </div>
 
       <hr />
@@ -59,15 +88,23 @@ export default function BillingPage() {
                 </div>
                 <div>
                   <div style={{fontWeight:700,fontSize:'var(--text-lg)',marginBottom:4,color:'var(--text-primary)'}}>{b.customerName || 'Guest'}</div>
-                  <div style={{display:'flex',gap:12,fontSize:'var(--text-sm)',color:'var(--text-secondary)'}}>
+                  <div style={{display:'flex',gap:12,fontSize:'var(--text-sm)',color:'var(--text-secondary)',flexWrap:'wrap'}}>
                     <span>ID: {b.id}</span>
                     <span>•</span>
                     <span>{b.items.length} {b.items.length === 1 ? 'item' : 'items'}</span>
+                    {b.createdBy && (
+                      <>
+                        <span>•</span>
+                        <span>By: <strong>{b.createdBy.userName}</strong></span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="secondary" onClick={() => setActiveBillId(b.id)}>✎ Edit</button>
+                <button className="btn-ghost btn-sm" onClick={() => handlePrintBill(b.id)} title="Print bill">🖨️ Print</button>
+                <button className="danger btn-sm" onClick={() => handleDeleteBill(b.id)} title="Delete bill">🗑️</button>
               </div>
             </li>
           ))}
@@ -102,11 +139,18 @@ export default function BillingPage() {
                     <span className={`badge ${b.state === 'PAID' ? 'badge-success' : 'badge-default'}`} style={{fontSize:'10px',padding:'2px 8px'}}>
                       {b.state}
                     </span>
+                    {b.createdBy && (
+                      <>
+                        <span>•</span>
+                        <span>By: <strong>{b.createdBy.userName}</strong></span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="secondary btn-sm" onClick={() => setActiveBillId(b.id)}>👁 View</button>
+                <button className="btn-ghost btn-sm" onClick={() => handlePrintBill(b.id)} title="Print bill">🖨️ Print</button>
               </div>
             </li>
           ))}

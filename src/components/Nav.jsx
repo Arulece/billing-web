@@ -1,12 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { seedSampleMaster } from '../utils/seedData';
 import { useApp } from '../store/AppContext';
 
 export default function Nav() {
-  const { role, loginAs, theme, toggleThemeAnimated, toggleTheme } = useAuth();
+  const { role, user, logout, theme, toggleThemeAnimated, toggleTheme } = useAuth();
   const { state } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <nav className="nav">
       <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
@@ -20,28 +27,50 @@ export default function Nav() {
               </linearGradient>
             </defs>
           </svg>
-          Desktop Hotel
+          Arul Hotel
           <small>POS & Billing</small>
         </div>
         <div className="links">
           <Link to="/">Billing</Link>
-          <Link to="/items">Items</Link>
-          <Link to="/reports">Reports</Link>
-          <Link to="/employees">Employees</Link>
-          <Link to="/expenses">Expenses</Link>
+          {role === 'Admin' && (
+            <>
+              <Link to="/items">Items</Link>
+              <Link to="/reports">Reports</Link>
+              <Link to="/employees">Employees</Link>
+              <Link to="/expenses">Expenses</Link>
+            </>
+          )}
         </div>
       </div>
-      <div className="role">
-        <label style={{ marginRight: 8 }}>Role:</label>
-        <select value={role} onChange={(e) => loginAs(e.target.value)}>
-          <option value="Staff">Staff</option>
-          <option value="Admin">Admin</option>
-        </select>
-        <button title="Toggle theme" onClick={toggleThemeAnimated || toggleTheme} className="btn-ghost btn-sm" style={{marginLeft:8}}>
+      <div className="role" style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',marginRight:8}}>
+          <strong style={{fontSize:'0.9em'}}>{user?.name || 'User'}</strong>
+          <span style={{fontSize:'0.75em',color:'#666',fontWeight:'500'}}>
+            {role}
+          </span>
+        </div>
+        <button title="Toggle theme" onClick={toggleThemeAnimated || toggleTheme} className="btn-ghost btn-sm">
           {theme === 'light' ? '🌞' : '🌙'}
         </button>
-        <button title="Load sample dishes" onClick={async () => { await seedSampleMaster(); window.location.reload(); }} className="btn-ghost btn-sm" style={{marginLeft:8}}>
+        {/* <button title="Load sample dishes" onClick={async () => { await seedSampleMaster(); window.location.reload(); }} className="btn-ghost btn-sm">
           Load Sample Dishes
+        </button> */}
+        <button 
+          onClick={handleLogout} 
+          className="btn-ghost btn-sm"
+          style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.85em'
+          }}
+          title="Logout"
+        >
+          Logout
         </button>
       </div>
     </nav>

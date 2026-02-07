@@ -96,6 +96,26 @@ export const AppProvider = ({ children }) => {
     dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
   };
 
+  const updateEmployee = async (employeeId, patch) => {
+    const master = state.master || {};
+    master.employees = master.employees || [];
+    const idx = master.employees.findIndex((e) => e.id === employeeId);
+    if (idx === -1) throw new Error('Employee not found');
+    master.employees[idx] = { ...master.employees[idx], ...patch };
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  const deleteEmployee = async (employeeId) => {
+    const master = state.master || {};
+    master.employees = master.employees || [];
+    master.employees = master.employees.filter((e) => e.id !== employeeId);
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
   const addExpense = async (expense) => {
     const master = state.master || {};
     master.expenses = master.expenses || [];
@@ -134,8 +154,17 @@ export const AppProvider = ({ children }) => {
     dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
   };
 
+  const deleteBill = async (billId) => {
+    const master = state.master || {};
+    master.bills = master.bills || [];
+    master.bills = master.bills.filter((b) => b.id !== billId);
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
   return (
-    <AppContext.Provider value={{ state, createBill, updateBill, closeBill, addEmployee, addExpense, addDish, updateDish, deleteDish }}>
+    <AppContext.Provider value={{ state, createBill, updateBill, closeBill, addEmployee, updateEmployee, deleteEmployee, addExpense, addDish, updateDish, deleteDish, deleteBill }}>
       {children}
     </AppContext.Provider>
   );
