@@ -1,18 +1,76 @@
 // storageService.js
-// Provides an async wrapper around localStorage with in-memory fallback
+// Provides an async wrapper around IndexedDB with in-memory fallback
 
-const MEMORY_STORE_KEY = 'dh_master_json_v1';
+import { openDB } from 'idb';
+
+const DB_NAME = 'DesktopHotelDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'master';
+const MASTER_KEY = 'dh_master_json_v1';
+const LOCALSTORAGE_KEY = 'dh_master_json_v1'; // For migration
 
 const memory = {
   master: null,
 };
 
-const isLocalStorageAvailable = () => {
+let dbPromise = null;
+
+// Initialize IndexedDB
+const initDB = async () => {
+  if (dbPromise) return dbPromise;
+
   try {
-    const testKey = '__dh_test__';
-    window.localStorage.setItem(testKey, '1');
-    window.localStorage.removeItem(testKey);
-    return true;
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        // Create object store if it doesn't exist
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      },
+    });
+
+    // Migrate data from localStorage to IndexedDB if exists
+    await migrateFromLocalStorage();
+
+    return dbPromise;
+  } catch (error) {
+    console.error('IndexedDB initialization failed:', error);
+    dbPromise = null;
+    return null;
+  }
+};
+
+// Migrate existing localStorage data to IndexedDB
+const migrateFromLocalStorage = async () => {
+  try {
+    // Check if localStorage has data
+    const localStorageData = window.localStorage.getItem(LOCALSTORAGE_KEY);
+    if (!localStorageData) return;
+
+    const db = await dbPromise;
+    if (!db) return;
+
+    // Check if IndexedDB already has data
+    const existingData = await db.get(STORE_NAME, MASTER_KEY);
+    if (existingData) return; // Don't overwrite existing IndexedDB data
+
+    // Migrate from localStorage to IndexedDB
+    const parsedData = JSON.parse(localStorageData);
+    await db.put(STORE_NAME, parsedData, MASTER_KEY);
+    
+    console.log('Successfully migrated data from localStorage to IndexedDB');
+    
+    // Optionally clear localStorage after successful migration
+    window.localStorage.removeItem(LOCALSTORAGE_KEY);
+  } catch (error) {
+    console.error('Error migrating from localStorage:', error);
+  }
+};
+
+// Check if IndexedDB is available
+const isIndexedDBAvailable = () => {
+  try {
+    return typeof indexedDB !== 'undefined';
   } catch (e) {
     return false;
   }
@@ -20,26 +78,31 @@ const isLocalStorageAvailable = () => {
 
 const storage = {
   async getMaster() {
-    if (isLocalStorageAvailable()) {
+    if (isIndexedDBAvailable()) {
       try {
-        const raw = window.localStorage.getItem(MEMORY_STORE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
+        const db = await initDB();
+        if (!db) throw new Error('Database not initialized');
+        
+        const data = await db.get(STORE_NAME, MASTER_KEY);
+        return data || null;
       } catch (err) {
-        console.error('storage:getMaster parse error', err);
-        return null;
+        console.error('storage:getMaster IndexedDB error', err);
+        return memory.master;
       }
     }
     return memory.master;
   },
 
   async saveMaster(payload) {
-    if (isLocalStorageAvailable()) {
+    if (isIndexedDBAvailable()) {
       try {
-        window.localStorage.setItem(MEMORY_STORE_KEY, JSON.stringify(payload));
+        const db = await initDB();
+        if (!db) throw new Error('Database not initialized');
+        
+        await db.put(STORE_NAME, payload, MASTER_KEY);
         return true;
       } catch (err) {
-        console.error('storage:saveMaster error', err);
+        console.error('storage:saveMaster IndexedDB error', err);
         memory.master = payload;
         return false;
       }
@@ -49,10 +112,24 @@ const storage = {
   },
 
   async clear() {
-    if (isLocalStorageAvailable()) {
-      window.localStorage.removeItem(MEMORY_STORE_KEY);
+    if (isIndexedDBAvailable()) {
+      try {
+        const db = await initDB();
+        if (db) {
+          await db.delete(STORE_NAME, MASTER_KEY);
+        }
+      } catch (err) {
+        console.error('storage:clear IndexedDB error', err);
+      }
     }
     memory.master = null;
+    
+    // Also clear localStorage for complete cleanup
+    try {
+      window.localStorage.removeItem(LOCALSTORAGE_KEY);
+    } catch (e) {
+      // Ignore localStorage errors
+    }
   },
 };
 

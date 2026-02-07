@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import storage from '../services/storageService';
 import billingService from '../services/billingService';
+import masterData from '../utils/master-data.json';
 
 const initialState = {
   master: null,
@@ -38,9 +39,19 @@ export const AppProvider = ({ children }) => {
     let mounted = true;
     (async () => {
       try {
-        const master = (await storage.getMaster()) || { _meta: { invoiceCounter: 0 }, bills: [], dishes: [], employees: [], expenses: [], transactions: [] };
+        let master = await storage.getMaster();
+        
+        // If no master data found, initialize with master-data.json
+        if (!master || Object.keys(master).length === 0) {
+          console.log('No master data found, initializing with master-data.json');
+          master = masterData;
+          await storage.saveMaster(master);
+          console.log('Master data initialized successfully');
+        }
+        
         if (mounted) dispatch({ type: ACTIONS.INIT, payload: master });
       } catch (err) {
+        console.error('Error loading master data:', err);
         dispatch({ type: ACTIONS.SET_ERROR, payload: err.message });
       }
     })();

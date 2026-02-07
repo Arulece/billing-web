@@ -9,6 +9,31 @@ const STATIC_ASSETS = [
   '/src/index.jsx',
   '/src/App.jsx',
   '/src/styles/global.css',
+  // Pages
+  '/src/pages/BillingPage.jsx',
+  '/src/pages/ReportsPage.jsx',
+  '/src/pages/ItemsPage.jsx',
+  '/src/pages/EmployeesPage.jsx',
+  '/src/pages/ExpensesPage.jsx',
+  '/src/pages/LoginPage.jsx',
+  '/src/pages/PrintInvoice.jsx',
+  // Components
+  '/src/components/Nav.jsx',
+  '/src/components/BillForm.jsx',
+  // Store/Context
+  '/src/store/AppContext.jsx',
+  '/src/store/AuthContext.jsx',
+  '/src/store/AppContext.js',
+  '/src/store/AuthContext.js',
+  // Services
+  '/src/services/billingService.js',
+  '/src/services/storageService.js',
+  // Utils
+  '/src/utils/master-data.json',
+  '/src/utils/reports.js',
+  '/src/utils/seedData.js',
+  // Constants
+  '/src/constants/schemas.js',
 ];
 
 // Install event - cache static assets
