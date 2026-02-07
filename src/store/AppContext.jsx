@@ -1,0 +1,148 @@
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import storage from '../services/storageService';
+import billingService from '../services/billingService';
+
+const initialState = {
+  master: null,
+  loading: true,
+  error: null,
+};
+
+const ACTIONS = {
+  INIT: 'INIT',
+  SET_ERROR: 'SET_ERROR',
+  CREATE_BILL: 'CREATE_BILL',
+  UPDATE_BILL: 'UPDATE_BILL',
+  CLOSE_BILL: 'CLOSE_BILL',
+  ADD_EMPLOYEE: 'ADD_EMPLOYEE',
+  ADD_EXPENSE: 'ADD_EXPENSE',
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case ACTIONS.INIT:
+      return { ...state, master: action.payload, loading: false };
+    case ACTIONS.SET_ERROR:
+      return { ...state, error: action.payload };
+    default:
+      return state;
+  }
+}
+
+const AppContext = createContext(null);
+
+export const AppProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const master = (await storage.getMaster()) || { _meta: { invoiceCounter: 0 }, bills: [], dishes: [], employees: [], expenses: [], transactions: [] };
+        if (mounted) dispatch({ type: ACTIONS.INIT, payload: master });
+      } catch (err) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: err.message });
+      }
+    })();
+    return () => (mounted = false);
+  }, []);
+
+  // Actions
+  const createBill = async (billData) => {
+    try {
+      const master = state.master || {};
+      const bill = await billingService.createBill(master, billData);
+      const updatedMaster = await storage.getMaster();
+      dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+      return bill;
+    } catch (err) {
+      dispatch({ type: ACTIONS.SET_ERROR, payload: err.message });
+      throw err;
+    }
+  };
+
+  const updateBill = async (billId, patch) => {
+    try {
+      const master = state.master || {};
+      const bill = await billingService.updateBill(master, billId, patch);
+      const updatedMaster = await storage.getMaster();
+      dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+      return bill;
+    } catch (err) {
+      dispatch({ type: ACTIONS.SET_ERROR, payload: err.message });
+      throw err;
+    }
+  };
+
+  const closeBill = async (billId, opts) => {
+    try {
+      const master = state.master || {};
+      const bill = await billingService.closeBill(master, billId, opts);
+      const updatedMaster = await storage.getMaster();
+      dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+      return bill;
+    } catch (err) {
+      dispatch({ type: ACTIONS.SET_ERROR, payload: err.message });
+      throw err;
+    }
+  };
+
+  const addEmployee = async (employee) => {
+    const master = state.master || {};
+    master.employees = master.employees || [];
+    master.employees.push({ ...employee, id: `emp_${Date.now()}` });
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  const addExpense = async (expense) => {
+    const master = state.master || {};
+    master.expenses = master.expenses || [];
+    master.expenses.push({ ...expense, id: `exp_${Date.now()}`, date: new Date().toISOString() });
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  const addDish = async (dish) => {
+    const master = state.master || {};
+    master.dishes = master.dishes || [];
+    master.dishes.push({ ...dish, id: dish.id || `dish_${Date.now()}` });
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  const updateDish = async (dishId, patch) => {
+    const master = state.master || {};
+    master.dishes = master.dishes || [];
+    const idx = master.dishes.findIndex((d) => d.id === dishId);
+    if (idx === -1) throw new Error('Dish not found');
+    master.dishes[idx] = { ...master.dishes[idx], ...patch };
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  const deleteDish = async (dishId) => {
+    const master = state.master || {};
+    master.dishes = master.dishes || [];
+    master.dishes = master.dishes.filter((d) => d.id !== dishId);
+    await storage.saveMaster(master);
+    const updatedMaster = await storage.getMaster();
+    dispatch({ type: ACTIONS.INIT, payload: updatedMaster });
+  };
+
+  return (
+    <AppContext.Provider value={{ state, createBill, updateBill, closeBill, addEmployee, addExpense, addDish, updateDish, deleteDish }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useApp must be used within AppProvider');
+  return ctx;
+};
