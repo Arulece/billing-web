@@ -64,7 +64,11 @@ export default function BillingPage() {
       </div>
 
       <div className="card">
-        <BillForm key={selectedBill?.id || `new-bill-${formResetKey}`} existingBill={selectedBill} />
+        <BillForm 
+          key={selectedBill?.id || `new-bill-${formResetKey}`} 
+          existingBill={selectedBill}
+          onBillCreated={(billId) => setActiveBillId(billId)}
+        />
       </div>
 
       <hr />

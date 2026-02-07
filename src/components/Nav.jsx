@@ -27,7 +27,7 @@ export default function Nav() {
               </linearGradient>
             </defs>
           </svg>
-          Arul Hotel
+          Priya Hotel
           <small>POS & Billing</small>
         </div>
         <div className="links">

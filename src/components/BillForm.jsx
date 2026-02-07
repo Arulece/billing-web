@@ -3,7 +3,7 @@ import billingService from '../services/billingService';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../store/AuthContext';
 
-export default function BillForm({ existingBill }) {
+export default function BillForm({ existingBill, onBillCreated }) {
   const { createBill, updateBill, closeBill, state } = useApp();
   const { user } = useAuth();
   const dishes = state.master?.dishes || [];
@@ -155,8 +155,12 @@ export default function BillForm({ existingBill }) {
         await updateBill(existingBill.id, payload);
         alert('Bill updated successfully!');
       } else {
-        await createBill(payload);
+        const newBill = await createBill(payload);
         alert('Bill created successfully!');
+        // Notify parent about new bill so it can update activeBillId
+        if (onBillCreated && newBill?.id) {
+          onBillCreated(newBill.id);
+        }
       }
     } catch (err) {
       alert('Failed to save bill: ' + err.message);

@@ -94,9 +94,9 @@ export default function PrintInvoice({ bill }) {
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
           <div>
-            <h2 style={{margin:0}}>Sunrise Hotel & Restaurant</h2>
-            <div className="muted">No. 12, MG Road, Chennai, Tamil Nadu</div>
-            <div className="muted">Phone: +91 98765 43210 • GSTIN: 33ABCDE1234F1Z5</div>
+            <h2 style={{margin:0}}>Priya Hotel & Restaurant</h2>
+            <div className="muted">No. 2B, Aandavar nagar, Belur, Salem, Tamil Nadu</div>
+            <div className="muted">Phone: +91 99430 04175 • GSTIN: 33ABCDE1234F1Z5</div>
             <div style={{marginTop:8}}>Invoice: <strong>{bill.invoiceNumber || '—'}</strong></div>
             <div>Date: <strong>{bill.paidAt || bill.createdAt}</strong></div>
           </div>
